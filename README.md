@@ -22,7 +22,7 @@ The goal is to understand how modern deep networks behave beyond the classical b
 
 > (Main figure will be inserted after experiments are finalized.)
 
-![double_descent](reports/figures/main_double_descent.png)
+
 
 ---
 
@@ -82,3 +82,4 @@ Install dependencies:
 
 ```bash
 pip install -r requirements.txt
+
