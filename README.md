@@ -1,7 +1,7 @@
 # Double Descent in Overparameterized MLPs  
 A teacher–student regression study of interpolation and modern generalization behavior.
 
---
+---
 
 ## Overview
 
@@ -82,6 +82,7 @@ Install dependencies:
 
 ```bash
 pip install -r requirements.txt
+
 
 
 
