@@ -24,6 +24,23 @@ class MLP(nn.Module):
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         return self.net(x).squeeze(-1)
 
+class FrozenTwoLayerReLU(nn.Module):
+    def __init__(self, d_in: int, width: int):
+        super().__init__()
+        self.fc1 = nn.Linear(d_in, width, bias=False)
+        self.fc2 = nn.Linear(width, 1, bias=False)
+
+        # Initialize first layer and freeze it
+        nn.init.normal_(self.fc1.weight, mean=0.0, std=1.0/math.sqrt(d_in))
+        for p in self.fc1.parameters():
+            p.requires_grad = False
+
+        # Initialize readout layer to zero as per Attempt 8b
+        nn.init.zeros_(self.fc2.weight)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        return self.fc2(torch.relu(self.fc1(x))).squeeze(-1)
+
 @dataclass
 class TSData:
     x_train: torch.Tensor
@@ -60,6 +77,38 @@ def make_teacher_student_regression(
         eps = noise_std * torch.randn(n_train, generator=g)
         y_train = y_train_clean + eps
         y_test  = y_test_clean  # test is noiseless by default (clean target)
+
+    return TSData(
+        x_train.to(device),
+        y_train.to(device),
+        x_test.to(device),
+        y_test.to(device),
+    )
+
+def make_linear_teacher_regression(
+    n_train: int = 256,
+    n_test: int = 4096,
+    d_in: int = 50,
+    noise_std: float = 0.5,
+    seed: int = 0,
+    device: str = "cpu",
+) -> TSData:
+    g = torch.Generator(device="cpu")
+    g.manual_seed(seed)
+
+    x_train = torch.randn(n_train, d_in, generator=g)
+    x_test  = torch.randn(n_test, d_in, generator=g)
+
+    # Linear teacher w*
+    w_star = torch.randn(d_in, generator=g) / math.sqrt(d_in)
+    
+    with torch.no_grad():
+        y_train_clean = x_train @ w_star
+        y_test_clean  = x_test @ w_star
+
+        eps = noise_std * torch.randn(n_train, generator=g)
+        y_train = y_train_clean + eps
+        y_test  = y_test_clean
 
     return TSData(
         x_train.to(device),

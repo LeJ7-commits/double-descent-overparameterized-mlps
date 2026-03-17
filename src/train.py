@@ -28,15 +28,19 @@ def train_regression(
     batch_size: int = 128,
     steps: int = 4000,
     log_every: int = 200,
+    target_mse: float | None = None,
     device: str = "cpu",
 ):
     model.to(device)
     model.train()
 
+    # Use filter to handle frozen parameters if any
+    params = filter(lambda p: p.requires_grad, model.parameters())
+
     if optimizer.lower() == "adam":
-        opt = torch.optim.Adam(model.parameters(), lr=lr, weight_decay=weight_decay)
+        opt = torch.optim.Adam(params, lr=lr, weight_decay=weight_decay)
     elif optimizer.lower() == "sgd":
-        opt = torch.optim.SGD(model.parameters(), lr=lr, momentum=0.9, weight_decay=weight_decay)
+        opt = torch.optim.SGD(params, lr=lr, momentum=0.9, weight_decay=weight_decay)
     else:
         raise ValueError(f"Unknown optimizer={optimizer}")
 
@@ -63,5 +67,8 @@ def train_regression(
             history["step"].append(step)
             history["train_mse"].append(tr)
             history["test_mse"].append(te)
+
+            if target_mse is not None and tr < target_mse:
+                break
 
     return history, time.time() - t0
